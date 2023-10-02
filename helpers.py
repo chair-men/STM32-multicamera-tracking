@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import os
 
 
 def stack_images(scale, images):
@@ -89,3 +90,26 @@ def setup_resolution(size_each_camera_image, resize_all_camera_image, total_cam)
                 ],
             ),
         ).shape[:2]
+
+def stitch_frames(image_folder, video_name):
+    def key(img_name):
+        num = int(img_name.split('.')[0])
+        return num
+
+    base, ext = os.path.splitext(video_name)
+    if ext.lower() != ".mp4":
+        video_name = base + ".mp4"
+
+    images = [img for img in os.listdir(image_folder) if img.endswith(".jpg")]
+    frame = cv2.imread(os.path.join(image_folder, images[0]))
+    height, width, layers = frame.shape
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    video = cv2.VideoWriter(video_name, fourcc, 30, (width,height))
+
+    for image in sorted(images, key=key):
+        print(image)
+        video.write(cv2.imread(os.path.join(image_folder, image)))
+
+    cv2.destroyAllWindows()
+    video.release()

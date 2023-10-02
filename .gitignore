@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# dataset
+/EPFL-RLC_dataset
+/output
+
 # C extensions
 *.so
 

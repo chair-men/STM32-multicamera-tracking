@@ -8,7 +8,7 @@ from tqdm.autonotebook import tqdm
 from itertools import count as while_true
 from object_detection import ObjectDetection
 from feature_extraction import FeatureExtraction
-from helpers import stack_images, new_coordinates_resize, setup_resolution
+from helpers import stack_images, new_coordinates_resize, setup_resolution, stitch_frames
 
 
 def main(cfg):
@@ -37,20 +37,21 @@ def main(cfg):
         cam[f"cam_{i}"] = cv2.VideoCapture(os.path.join(cfg["video_path"], videos[i]))
         cam[f"cam_{i}"].set(3, cfg["size_each_camera_image"][0])
         cam[f"cam_{i}"].set(4, cfg["size_each_camera_image"][1])
-    if cfg["save_video_camera_tracking"]:
-        out = cv2.VideoWriter(
-            os.path.join(
-                cfg["output_path_name_save_video_camera_tracking"],
-                f'{cfg["output_name_save_video_camera_tracking"]}.avi',
-            ),
-            cv2.VideoWriter_fourcc("M", "J", "P", "G"),
-            cfg["fps_save_video_camera_tracking"],
-            setup_resolution(
-                cfg["size_each_camera_image"], cfg["resize_all_camera_image"], total_cam
-            ),
-        )
+    # if cfg["save_video_camera_tracking"]:
+    #     out = cv2.VideoWriter(
+    #         os.path.join(
+    #             cfg["output_path_name_save_video_camera_tracking"],
+    #             f'{cfg["output_name_save_video_camera_tracking"]}.avi',
+    #         ),
+    #         cv2.VideoWriter_fourcc("M", "J", "P", "G"),
+    #         cfg["fps_save_video_camera_tracking"],
+    #         setup_resolution(
+    #             cfg["size_each_camera_image"], cfg["resize_all_camera_image"], total_cam
+    #         ),
+    #     )
 
     id = 0
+    frame = 0
     # for _ in tqdm(while_true(), desc="Tracking person in progress..."):
     for _ in while_true():
         # Set up variable
@@ -60,6 +61,9 @@ def main(cfg):
         # Get camera image
         for i in range(total_cam):
             _, images[f"image_{i}"] = cam[f"cam_{i}"].read()
+
+        if images[f"image_0"] is None or images[f"image_1"] is None or images[f"image_2"] is None:
+            break
 
         # Predict person with object detection
         for i in range(total_cam):
@@ -209,7 +213,11 @@ def main(cfg):
             )
 
         if cfg["save_video_camera_tracking"]:
-            out.write(display_image)
+            cv2.imwrite(
+                os.path.join(cfg["output_path_name_save_frames_camera_tracking"], f"{frame}.jpg"),
+                display_image
+            )
+            frame += 1
         if cfg["display_video_camera_tracking"]:
             cv2.imshow("CCTV Misale", display_image)
             if cv2.waitKey(1) == ord("q"):
@@ -219,11 +227,15 @@ def main(cfg):
     for i in range(total_cam):
         cam[f"cam_{i}"].release()
     if cfg["save_video_camera_tracking"]:
-        out.release()
+        stitch_frames(
+            cfg["output_path_name_save_frames_camera_tracking"], 
+            os.path.join(cfg["video_path"], "output.mp4")
+        )
     cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-s",
