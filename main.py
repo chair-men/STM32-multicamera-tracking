@@ -3,6 +3,7 @@ import cv2
 import yaml
 import argparse
 import numpy as np
+import json
 from scipy.spatial import distance
 from tqdm.autonotebook import tqdm
 from itertools import count as while_true
@@ -52,6 +53,7 @@ def main(cfg):
 
     id = 0
     frame = 0
+    output = {}
     # for _ in tqdm(while_true(), desc="Tracking person in progress..."):
     for _ in while_true():
         # Set up variable
@@ -62,8 +64,10 @@ def main(cfg):
         for i in range(total_cam):
             _, images[f"image_{i}"] = cam[f"cam_{i}"].read()
 
-        if images[f"image_0"] is None or images[f"image_1"] is None or images[f"image_2"] is None:
+        if images["image_0"] is None or images["image_1"] is None:
             break
+
+        old_h, old_w, _ = images["image_0"].shape
 
         # Predict person with object detection
         for i in range(total_cam):
@@ -197,6 +201,27 @@ def main(cfg):
                         2,
                     )
 
+        # Write bounding boxes to dictionary
+        output[frame] = {}
+        new_w, new_h = cfg["size_each_camera_image"]
+        w_scale = old_w / new_w
+        h_scale = old_h / new_h
+        for key, value in detected_persons.items():
+            x1, y1, x2, y2 = [int(i) for i in value["bbox"]]
+            bbox = [
+                int(x1 * w_scale), 
+                int(y1 * h_scale), 
+                int((x2 - x1) * w_scale), 
+                int((y2 - y1) * h_scale)
+            ]
+
+            output[frame][key] = {
+                "id": value['id'],
+                "camera_id": value["camera_id"],
+                "cls_name": value["cls_name"],
+                "bbox": bbox,
+            }
+        
         # Display all cam
         if total_cam % 2 == 0:
             display_image = stack_images(
@@ -217,11 +242,13 @@ def main(cfg):
                 os.path.join(cfg["output_path_name_save_frames_camera_tracking"], f"{frame}.jpg"),
                 display_image
             )
-            frame += 1
+            
         if cfg["display_video_camera_tracking"]:
             cv2.imshow("CCTV Misale", display_image)
             if cv2.waitKey(1) == ord("q"):
                 break
+
+        frame += 1
 
     # Release all cam
     for i in range(total_cam):
@@ -229,9 +256,14 @@ def main(cfg):
     if cfg["save_video_camera_tracking"]:
         stitch_frames(
             cfg["output_path_name_save_frames_camera_tracking"], 
-            os.path.join(cfg["video_path"], "output.mp4")
+            os.path.join(cfg["output_path_save_video"], "output.mp4")
         )
     cv2.destroyAllWindows()
+
+    # Write bounding boxes to json file
+    with open(os.path.join("results", f"results.json"), "w") as f:
+        json.dump(output, f)
+
 
 
 if __name__ == "__main__":

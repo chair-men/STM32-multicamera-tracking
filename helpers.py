@@ -27,8 +27,8 @@ def stack_images(scale, images):
         imageBlank = np.zeros((height, width, 3), np.uint8)
         hor = [imageBlank] * rows
         for x in range(0, rows):
-            hor[x] = np.hstack(images[x])
-        ver = np.vstack(hor)
+            hor[x] = np.vstack(images[x])
+        ver = np.hstack(hor)
     else:
         for x in range(0, rows):
             if images[x].shape[:2] == images[0].shape[:2]:

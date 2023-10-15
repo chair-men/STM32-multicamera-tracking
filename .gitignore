@@ -6,6 +6,10 @@ __pycache__/
 # dataset
 /EPFL-RLC_dataset
 /output
+/output
+/pretrained_models
+/results
+/sample_video
 
 # C extensions
 *.so
