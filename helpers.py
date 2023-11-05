@@ -108,7 +108,6 @@ def stitch_frames(image_folder, video_name):
     video = cv2.VideoWriter(video_name, fourcc, 30, (width,height))
 
     for image in sorted(images, key=key):
-        print(image)
         video.write(cv2.imread(os.path.join(image_folder, image)))
 
     cv2.destroyAllWindows()

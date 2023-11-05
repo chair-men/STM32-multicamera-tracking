@@ -59,6 +59,7 @@ def main(cfg):
         # Set up variable
         images = {}
         predicts = {}
+        cur_detected_persons = {}
 
         # Get camera image
         for i in range(total_cam):
@@ -112,6 +113,7 @@ def main(cfg):
                         "confidence": predict[cls_name]["confidence"],
                         "color": np.random.randint(0, 255, size=3),
                     }
+                    cur_detected_persons[f"id_{id}"] = detected_persons[f"id_{id}"]
                     id += 1
                 else:
                     # Search Top 1 score person identification
@@ -169,6 +171,8 @@ def main(cfg):
                             "confidence": predict[cls_name]["confidence"],
                             "color": top1_person["color"],
                         }
+
+                        cur_detected_persons[f"id_{top1_person['id']}"] = detected_persons[f"id_{top1_person['id']}"]
                     else:
                         detected_persons[f"id_{id}"] = {
                             "extracted_features": extracted_features,
@@ -179,10 +183,12 @@ def main(cfg):
                             "confidence": predict[cls_name]["confidence"],
                             "color": np.random.randint(0, 255, size=3),
                         }
+
+                        cur_detected_persons[f"id_{id}"] = detected_persons[f"id_{id}"]
                         id += 1
 
             # Draw all bbox
-            for value in detected_persons.values():
+            for value in cur_detected_persons.values():
                 if value["camera_id"] == i:
                     cv2.rectangle(
                         images[f"image_{value['camera_id']}"],
@@ -206,7 +212,7 @@ def main(cfg):
         new_w, new_h = cfg["size_each_camera_image"]
         w_scale = old_w / new_w
         h_scale = old_h / new_h
-        for key, value in detected_persons.items():
+        for key, value in cur_detected_persons.items():
             x1, y1, x2, y2 = [int(i) for i in value["bbox"]]
             bbox = [
                 int(x1 * w_scale), 
@@ -256,12 +262,12 @@ def main(cfg):
     if cfg["save_video_camera_tracking"]:
         stitch_frames(
             cfg["output_path_name_save_frames_camera_tracking"], 
-            os.path.join(cfg["output_path_save_video"], "output.mp4")
+            os.path.join(cfg["output_path_save_video"], f"{cfg['output_name_save_video_camera_tracking']}.mp4")
         )
     cv2.destroyAllWindows()
 
     # Write bounding boxes to json file
-    with open(os.path.join("results", f"results.json"), "w") as f:
+    with open(os.path.join("results", f"{cfg['output_name_save_video_camera_tracking']}.json"), "w") as f:
         json.dump(output, f)
 
 
